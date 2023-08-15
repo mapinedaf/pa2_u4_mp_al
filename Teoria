@@ -1,0 +1,508 @@
+
+Un programa debe tener al menos 3 capas. controller, service y repository
+el repositorio también es conocido como dao (Data transfer object) y se conecta con la base de datos
+
+La aplicación es spring funciona con java y la base de datos puede ser cualquier otro tipo de modelo ie mysql postgress etc (dialecto)
+para comunicar se necesita un interprete para que puedan comunicarse. Por ejemplo una computadora necesita un driver
+para hablar con una impresora. 
+de igual forma una app java necesita usar un driver para conectarse a una base de datos. 
+El driver es una dependencia que se registra en el archivo pom.xml
+
+Hace muchos años existía un problema con las bases de datos relacionales. El paradigma entidad relacion es intrínsecamente
+incompatible con el paradigma orientado a objetos. Existía el jdbc (java database conection) y con 
+sentencias sql desde el programa. 
+
+De ahí nace el ORM (Object relational mapping), vincular objetos con tablas. Se puede mapear todo elemento de base de datos.
+Existe un conjunto de especificaciones para llegar a esto. Uno de los mas conocidos es el JPA (Jakarta persistance API)
+Existe un conjunto de ORMs en el mercado, entre estos esta hibernate, Eclipse link, Spring data 
+
+hibernate pasa a ser un traductor. Se encarga de traducir codigo java a la estructura de la base de datos. Se dice que es 
+independiente. 
+
+
+aplication.properties es el archivo donde se configura toda la aplicación incluyendo las conexiones de las bases de datos  
+
+pa2almp Nombre de la base de datos
+
+estu_(valor) "estu_ " es un identificador de tabla
+
+en cada linea se pone clave-valor, la clave va a ser un atributo fijo 
+
+DDL auto none que el modelo que esta en la aplicacion no cree objetos en la base de datos. 
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+ANOTACIONES DE JAKARTA PERSISTANCE 
+
+Un objeto representa una tabla. se le dice mediante anotacion @Table
+
+    @Table(name="estudiante")
+    @Table(name="estudiante", schema="") Para cambiar el esquema 
+    @Entity
+
+Cuando se mapea una tabla a traves de objetos, ese objeto pasa a ser entidad, la clase que mapeo la tabla
+Una tabla esta compuesta de columnas (atributos de la clase) se maneja
+con la anotacion @Column 
+
+@Column(name = "estu_nombre")
+
+Si ddl auto esta en none y el nombre del atributo y la columna no 
+son los mismos, da error 
+
+@Id identifica la clave primaria
+
+El crud basico debe buscar y eliminar por un identificador 
+
+Existe una interfaz que permite comuinicarse con la base de datos
+ENTITY MANAGER manejador de entidades. esta interfaz es el componente
+principal para interactuar con la base de datos. 
+El driver solo permite la coneccion desde la aplicacion a la 
+base de datos, no es bidireccional. 
+
+NO LLEVA @Autowired
+El entity manager debe tener una anotacion @PersistenceContext
+y la clase repository debe tener la anotacion @Transactional
+
+Para el crud existen metodos predefinidos. 
+
+
+--------------------------taller 14-------------------------------
+
+buena practica usar un valor secuencial como primary key en las 
+tablas. 
+
+Una secuencia en base de datos es asignar un valor secuencial a 
+un registro de una base de datos. Esta secuencia no la visualiza
+el usuario. Es un valor que se usa para la integridad referencial
+
+para la secuencia 
+@SequenceGenerator(name = "nombre_generador",sequenceName = "sec_estudiante",allocationSize = 1)
+
+para indicar que es un valor generado 
+@GeneratedValue(generator = "nombre_generador",strategy = GenerationType.SEQUENCE )
+
+Estas anotaciones pueden estar en cualquier orden mientras esten 
+arriba del valor secuencial 
+
+select nextval ('sec_estudiante')
+
+
+-------------------------------------------Taller 15 y 16 -----------------------------------
+Los sistemas empresariales no tienen una sola entidad, estas pueden estar
+relacionadas.
+
+Relacion one to one: Un registro esta relacionado con un solo registro
+este tipo de relacion se puede ver como dividir una tabla por un critero
+ej 
+
+Sea la tabla
+Empleado{nombre, apellido, cedula, sueldo, cargo, horario}
+
+se puede agrupar como
+
+Ciudadano{nombre, apellido, cedula}
+Empleado{sueldo, cargo, horario}
+
+si una sola tabla tiene muchos campos nulos se la divide. 
+
+otro concepto importante es que siemprew hay una tabla principal. se puede 
+diferenciar considerando que tabla no puede dejar de existir
+
+ej ciudadano puede existir sin empleado pero empleado no puede existir sin
+ciudadano, por lo tanto ciudadano es la tabla principal. 
+
+la tabla principal es importante porque su primary key baja como foreing key
+a la tabla secundaria. Eso obedece a lo siguiente si no tengo un dato pk 
+no rengo un fk y por lo tanto el registro no puede existir en la tabla
+secundaria. (poner null es un error)
+
+PARA PRUEBAS Y EXAMENES
+ddl-auto = update compara el esquema de la base datos con lo que esta
+mapeado en la aplicacion y si no coincide modifica la base para que sirva
+
+Cuando no se da el nombre de @Table la tablña soje el mismo nombre de la clase
+
+Si yo tengo una relacion 1 a 1 el ciudadano tiene una referencia a 
+una referencia hacia empleado 
+
+----------------------------------------------taller 17
+
+@OneToOne(cascade = CascadeType.ALL) el momento que se va a insertar el empleado la alicacion inserta en cascada a ese 
+atributo. se puede especificar si se ejecuta en cascad el create, read PERSIST, update  MERGE , delete REMOVE . ALL para todo
+se debe var la confircacion del sistema para decidir que service usar, el de la tabla principal o la secundaria. 
+Lo mas comun es que no se inserten ciudadanos si no que se busque en una base ya exitente y crear ls empleados con esa informacion. 
+
+lo correcto es hacer los set en la capa service, no la controller. 
+
+
+@OneToMany(mappedBy = "hotel" )
+relacon uno a muchos, un registro en una tabla puede tener muchos registros en otra enlazados por una foreing key
+un ejemplo es fatura:detalle hotel:habitacion 
+
+un hotel pude tener muchas habitaciones pero una habitacion solo puede existir en un hotel. 
+
+si un atributo no va a realizar operaciones matematicas deberia ser un string.
+
+
+
+---------------------------------taller 18
+muchos a muchos. la tabla principal no es mandatoria. 
+se usan tablas de rompimiento
+CascadeType.All se ejecuta en cascada la accion 
+
+----------------------------------taller19
+
+QUERY TYPES JPA
+
+ayuda a construir los querys para la informacion de la tabla
+dentro de jackarta existen tres tipos de querys
+
+1. query
+    JPQL(Jackarta persistence query language)
+    lenguaje de consulta a la base ded datos orientada a 
+    objetos en JPA
+
+    Cuando hablamos de sql es un lenguaje de consulta estandar
+    select column from table where condition
+
+    JPQL es otro lenguage pero orientado a objetos, esta
+    basado en sql y tienen una semejancia muy alta. se mantiene
+    todo lo de sql pero se tabaja con atributos y clases en lugar
+    de columnas y tablas. 
+
+    Si quiero hacer referencia a la columna de la tabla lo accedo
+    como un atributo. 
+    El beneficio es que se abstrae y se independiza de la base 
+    de datos. si hay un cambio de base es transparente con el usuario
+
+    Hibernate transforma de jpql a sql
+
+    tiene una sub division
+
+    1.1 Typed queries
+        darle un tipo al query
+    
+    1.2 NamedQuery
+        darle un nombre 
+
+2. Native query
+
+    Realizar queries con sql puro. con jpql hibernate tiene 
+    que hacer una transformacion. si la consulta es extensa
+    la transformacion se vuelve pesada. cuando se presentan
+    estos escenarios es mejor usar un native query. Se 
+    obtiene mejor rendimiento pero se pierde independencia.
+    
+
+3. Criteria api query
+
+    necesitamos hacer consultas dinamicas. por ejemplo dep-
+    endiendo del dia se necesita modificar el query, par 
+    por nombre, impar por apellido. el resto de condiciones 
+    son las mismas. basado en metodos se construye el query
+    
+
+--------------------------taller 20 -------------------------
+
+Typed query permite especificar el tipo de retorno a tener. ej
+si hago select a estudiante me retorna un estuciante. se 
+RECOMIENDA usar typed quety para evitar errores de casteo. 
+
+
+named query. que pasaria si dentro del sistema hay varias 
+paginas que busca el estudiante por su cedula? en el mejor 
+de los casos tengo un solo metodo, pero puede suceder que 
+cuando tenga un codigo muy grande se repitan las querys.
+Esta mal tener el mismo sql en varios repositories CODIGO
+DUPLICADO. jpa tiene named query para construir un query
+y darle nombre. 
+
+se le da un nombre (ALIAS) a un query
+(select.......) -> query empleado 
+y luego solo llamo al nombre. esto permite la centralizacion
+del codigo. 
+Otro beneficio es el mantenimiento. si no existiera el named
+query seria necesario modificar todos los quetys iguales. 
+pero si esta centralizado y solo se llama al query por el
+nombre podemos solo modificar el named query y se cambia todo
+
+EN LA CONSOLA SIEMPRE SE IMPRIME EL sql 
+
+el single reslult y el list result se utiliza dependiendo de
+las necesidades del sistema. si yo estoy seguyro que una 
+funcionalidad debe retornarme un solo registro, y si retorna 
+mas de uno es uyn error de base, se usa el single result. 
+el get result list se usa cuando no sabemos si retorna un solo
+valor. 
+
+
+-------------------taller 21 y 22 -------------------------------
+
+Named query: se guardan en un lugar centraizado, la entidad
+se elige la entidad a la que pertene el query. 
+.createNamedQuery Metodo para crear un named query
+
+
+
+NATIVE QUERY para querys muy complejos, mas de 4 tablas, muchas
+condiciones, muchos datos. Construimos el acceso a datos con sql 
+puro, se evita la conversion de jpql a sql. pero nos arraiga a 
+la sintaxis de una base de datos. no se maneeeja objetos sieempre 
+hay que hacer cast. createNativeQuery solo reqresa tipo query
+
+Se puede declarar una native query como typed query con un artificio
+creear con una combinacion de named querys
+
+siempre se debee eespeecificar la clase de resultado
+
+
+CRITERIA API QUERY: no usa nomenclatura jpql o sl. se usa metodos 
+para construir la sentencia 
+
+
+------------------- taller 23 --------------------------------------
+
+
+cuando hablamos de consultas a bases de datos, existen escenarios en los
+que una tabla puede llegar a tener cientos de campos. no es lo mismo un select
+que retorna 1 o dos columnas con uno que traiga cien columnas. 
+
+Que pasa si necesito un reporte con unicamente nombre y apellido? hasta ahora
+se ha visto como retornar todos los campos y seria ineficiente retornar 
+las 100 columnas. 
+
+Para poder soluciuonar este problema existe un concepto y patron de diseño
+llamado como DTO data transfer object. el dto permite transmitir datos 
+entre capas, solo los datos que necesito. 
+Este dto esta ubicado en la capa repository, en la subcapa modelo. 
+
+para nosotros construir un dto de estudiante usamos la nomenclatura 
+EstudianteDTO
+
+taller 24---------------------------------------------------------
+Cuando se hace un constructor explicito en una clase es buena pratica tambien 
+definir de forma explisita el constructor por defecto, ya que algunas veces no 
+se puede hacer inyeccion sin el constructor por defecto 
+
+
+Cuando se pasa dto entre capas se debe implementar la interfaz serializable
+
+DTO no es una entidad, en las consultas se hace referencia a las entidades. 
+
+se referencia el paquete completo 
+String jpql ="SELECT NEW com.uce.edu.p.avanzada.pa2_u3_p4_al_mp.repository.modelo.dto.EstudianteDTO(e.nombre,e.apellido) FROM Estudiante e";
+
+el sql se ejecuta solo con los campos requeridos. 
+
+
+LazyInitializationException. por defecto cuando consultamos una entidad que tiene una Relacion
+no trae la informacion de la relacion. podriamos pensqr que es loqgico que si  consultamos un
+hotel traiga tambien la lista de habitaciones que es una relacion pero no es asignar
+hay  que declararlo de forma explicita que me traiga los datos. 
+@OneToMany(mappedBy = "hotel", fetch = FetchType.EAGER)
+EAGER siempre trae todos los elementos
+
+Para ser mas edicientes se usa LAZY carga peresosa o carga bajo demanda, nos trae las habitaciones solo cuando
+las necesitamos 
+    @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)
+
+
+Hay que especificar cuando se usa 
+        @Override
+    public Hotel seleccionarPorNumero(Integer id) {
+
+        Hotel hotel =  this.entityManager.find(Hotel.class, id);
+
+        System.out.println(hotel.getHabitaciones().size());
+
+        return hotel;
+    }
+
+La señal no solo es el size, puede ser ocupar cualquier dato en el repos de esa relacion
+
+
+
+--------------------------------------------taller25--------------------------------------
+UNIDAD 3
+Tipos de joins en sql 
+
+1) Join 
+    a) inner join 
+        Joins de datos que coinciden
+        se puede usar el shortcut join 
+        en jpql no es necesario mandar el on (lo pone el hibernate)
+
+    b) outer joins
+        Datos que no coinciden, por fuera de la juntura 
+
+2) Join where 
+
+    1) left join 
+
+    2) right join 
+
+    3) full join
+
+jpa incluye un tipo de query adicional 
+
+*) join fetch 
+    permite ejecutar un tipo de sql optimizando el rendimiento 
+
+
+
+------------------------------------taller 26----------------------------------------------
+
+join where (Otra forma de hacer un inner join) 
+
+------------------------------------- taller 27------------------------------
+
+
+join fetch , es el tipo de join mas eficiente, si hay que traer toda la informacion de una relacion
+
+
+cuando tengo un objeto modelo que mapea un atributo que no quiero que se mapee dentro de la 
+base de datos debo utilizar la anotacion @Transient de jackarta persistance. util para hacer calculos 
+
+
+
+
+------------------------------------taller 30-------------------------------------
+
+Transacciones en sql: conjunto de operaciones todo o nada en base de datos. 
+dentro del contexto de base de datos no se considear una afectacion sola como transaccion.
+
+Las transaciones se ejecutan de manera secuencial e integra (todo o nada)
+
+se usan cuando se necesita inegridad.
+
+NOSOTROS DEFINIMOS EL ALCANZE DE LA TRANSACCION 
+
+hay escenarios donde no se deben hacer transaciones ej en una factura electronica. 
+Estas facturas se envian al sri, si el sistema esta caido y el envio es parte de la 
+transaccion se cancela toda la creacion de la factura y se empieza se nuevo. lo ideal
+seria separarlo en dos transacciones.
+
+Cuando se hace una transaccion desde un cliente crea una SESION y todo lo que haga
+antes del fin de la transaccion solo se ejecuta en una sesion privada de base de datos, 
+solo cuando se termina se ve reflejado en otras sesiones 
+
+dentro de jpa para poder manejar transacciones existen multiples alcances ie la cantidad
+de sentenias (metoodos) que forman una transaccion SCOPE O ALCANZE
+
+las transaciones se manejan a nivel de logica de negocio pero usando los metodos del repository
+
+ej:
+
+
+@Transaction // se ejecuta en la base de datos un begin en la primer linea implicita
+public void realizarTransferencia( String numOrigen, Strinf numDestino, BigInteger monto)
+
+si todo ocurrio bien al finalizar el metodo se ejecuta un commit, si hay una Exception 
+se ejecuta un rollback. 
+
+hay 6 tipos de scope o propagacion de transacciones
+
+------------------------------------ taller 31----------------------
+Propagaciones/scopes/alcances jpa
+
+
+1)Required: Si existe una traansaccion la aprovecha y si no la crea
+
+2)Requires new: Abre una transaccion y pone en suspenso la anterior una vez que el metodo
+requires new termina se vuelve a la transaccion anterior 
+
+3) Mandatory: Si no existe una transaccion abiera lanza una Exception 
+deberia estar en el repository si son suceptibles de afectar la base de datos
+
+4)suports: si existe una transaccion la aprovecha y si no no crea ninguna 
+
+5) never: si existe una transaccion se lanza un error 
+
+6) not supported: si exist una transaccion la pone en suspenso y se reactiva al salir del metod
+Es util para el select del repository  
+
+--------------taller 32-------------------------
+
+Solo las ecepciones uncheckeed generan rollback 
+
+
+
+
+--------taller 34------------------------------
+
+
+metodos referenciados
+
+mientras yo tengo un metodo que cumpla el contrato yo puedo pasar 
+como una implementacion de 
+una interfaz funcional
+
+taller 35 ----------------------------------------------
+
+metodo highorder son metodos que reciven una implmentacion de una interfaz
+no especifica la implementacion sino la interfaz 
+
+Java implemnta su propias interfaces funcionales. 
+
+
+-------------------taller 36-----------------------------------------------------
+
+Ejecucion secuencial controller -> service -> repository -> base de datos y de regreso 
+    Se ejecuta bajo un solo hilo (manejo de hilos)
+    funciona de forma sincrona 
+
+La base de la pogramacion multi hilo en java son los streams
+
+------------------------------------------37----------------
+
+la programacion multihilo esta relaconada con la programcion concurrente(gran cantida de datos)
+
+cuansdo se habla de hilos se abren dos temas
+
+    programion sincrona -> hilos (de manera secuencial) no hay garntia que sea el mismo hilo
+    se garantiza que sea secuncial un hilo 
+    sincrono significa que un hilo termina y le da la posta al siguiente (se queda esperando la respuesta)
+    debe haber un incio y un fin para que el siguiente hilo tome la posta
+    
+
+
+    programacion asincrona -> multihilos
+    existe un delta, la variacion de proesamiento de distintos hilos. hay metods en java como los de stream
+    que permiten crear hilos de manera inteligente.  
+
+    @Async para hacer un metodo asincrono y no espere la respuesta 
+
+    para que funcione el async hay que usar en el main @EnableAsync
+
+    tiene sentido esperar cuando hay un retorno, no podemos retornar directamente, hay que apoyarse en una clase
+    completable future
+
+
+-------------------------Taller 38------------------------------------------
+
+MVC Model view controller
+
+view es lo que el usuario ve 
+
+Controller controla la peticion del view
+
+Model corresponde a la informacion que maneja la pagina 
+
+Dentro de la programcion web todo es un recurso
+
+El modelo y controller se maneja a nivel de java, la vista se hace con html 
+
+W3c world wide web consortium se encarga de estandarizar la programacion web 
+
+Se tienen 3 componentes
+
+html (Estructura)
+La version actual de html es la 5. Es un lenguage que permite definir la estructura y contenido de una pagina web
+
+css (Estilo)
+Version actual css 3, cascade style sheet permite definir el estilo y diseño de mi pagina web 
+
+javascript (Funcionalidad )
+Lenguage que permite definir el comportamiento de la pagina web 
+
+thymeleaf es un framwork que facilita la creacion de paginas web 
